@@ -1,0 +1,192 @@
+\chapter{Installazione e Avvio}
+
+\section{Prerequisiti}
+
+\begin{itemize}
+  \item \textbf{Docker} $\geq$ 24.0 e \textbf{Docker Compose} $\geq$ 2.20
+  \item \textbf{make} (opzionale, semplifica i comandi)
+  \item \textbf{Chiave API OpenAI} (se \texttt{LLM\_PROVIDER=openai}) oppure
+        \textbf{Ollama} installato localmente (se \texttt{LLM\_PROVIDER=ollama})
+  \item Connessione Internet per il pull delle immagini Docker al primo avvio
+\end{itemize}
+
+\section{Struttura del Repository}
+
+\begin{lstlisting}[language=bash]
+ai-document-assistant/
++-- app/
+|   +-- main.py          # Entry point FastAPI
+|   +-- config.py        # Impostazioni (pydantic-settings)
+|   +-- api/             # Router: documents, chat, search
+|   +-- core/            # Pipeline: ingestion, retrieval, llm
+|   +-- models/          # Modelli SQLAlchemy
+|   +-- db/              # Session, CRUD
+|   +-- utils/           # Validazione file
++-- docker/
+|   +-- Dockerfile
+|   +-- docker-compose.yml
+|   +-- .env.example
++-- docs/                # Questa documentazione (LaTeX)
++-- tests/
+|   +-- fixtures/sample.pdf
+|   +-- test_api.py
+|   +-- test_ingestion.py
++-- requirements.txt
++-- Makefile
+\end{lstlisting}
+
+\section{Configurazione}
+
+\begin{enumerate}
+  \item Copiare il file di esempio:
+\begin{lstlisting}[language=bash]
+cp docker/.env.example docker/.env
+\end{lstlisting}
+
+  \item Modificare \texttt{docker/.env} con i propri valori:
+\end{enumerate}
+
+\begin{lstlisting}[language=bash]
+# Scegliere il provider LLM
+LLM_PROVIDER=openai          # oppure: ollama
+
+# Obbligatorio se LLM_PROVIDER=openai
+OPENAI_API_KEY=sk-...
+
+# Dimensione vettori: 1536 (OpenAI) oppure 768 (nomic-embed-text)
+QDRANT_VECTOR_SIZE=1536
+
+# Password PostgreSQL (cambiare in produzione)
+POSTGRES_PASSWORD=password
+\end{lstlisting}
+
+\textbf{Nota per Ollama:} decommentare il servizio \texttt{ollama} nel
+\texttt{docker-compose.yml} e impostare \texttt{LLM\_PROVIDER=ollama}.
+Al primo avvio eseguire il pull del modello:
+\begin{lstlisting}[language=bash]
+docker exec ai_doc_ollama ollama pull llama3.2
+docker exec ai_doc_ollama ollama pull nomic-embed-text
+\end{lstlisting}
+
+\section{Avvio con Docker Compose}
+
+\begin{lstlisting}[language=bash]
+# Build e avvio di tutti i servizi
+docker compose -f docker/docker-compose.yml up --build -d
+
+# Oppure, usando il Makefile:
+make build
+make up
+\end{lstlisting}
+
+I servizi avviati sono:
+
+\begin{table}[H]
+  \centering
+  \begin{tabularx}{\textwidth}{llX}
+    \toprule
+    \textbf{Servizio} & \textbf{Porta} & \textbf{URL} \\
+    \midrule
+    FastAPI app & 8000 & \url{http://localhost:8000} \\
+    Swagger UI  & 8000 & \url{http://localhost:8000/docs} \\
+    PostgreSQL  & 5432 & \texttt{localhost:5432} \\
+    Qdrant REST & 6333 & \url{http://localhost:6333} \\
+    Qdrant gRPC & 6334 & \texttt{localhost:6334} \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Porte esposte dai servizi}
+\end{table}
+
+\section{Verifica dell'Installazione}
+
+\begin{lstlisting}[language=bash]
+# Health check
+curl http://localhost:8000/health
+# {"status": "ok", "version": "1.0.0"}
+
+# Carica un PDF di test
+curl -X POST http://localhost:8000/documents/upload \
+  -F "file=@tests/fixtures/sample.pdf"
+
+# Fai una domanda
+curl -X POST http://localhost:8000/chat/ \
+  -H "Content-Type: application/json" \
+  -d '{"question": "Di cosa tratta il documento?"}'
+\end{lstlisting}
+
+\section{Comandi Make}
+
+\begin{table}[H]
+  \centering
+  \begin{tabularx}{\textwidth}{lX}
+    \toprule
+    \textbf{Comando} & \textbf{Effetto} \\
+    \midrule
+    \texttt{make up}      & Avvia i container in background \\
+    \texttt{make down}    & Ferma i container \\
+    \texttt{make build}   & Ricostruisce le immagini \\
+    \texttt{make logs}    & Mostra i log del servizio app \\
+    \texttt{make test}    & Esegue pytest all'interno del container \\
+    \texttt{make shell}   & Apre una shell bash nel container app \\
+    \texttt{make clean}   & Rimuove container, volumi e cache Python \\
+    \texttt{make docs}    & Compila la documentazione LaTeX in PDF \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Comandi disponibili nel Makefile}
+\end{table}
+
+\section{Variabili d'Ambiente}
+
+\begin{longtable}{l p{3.2cm} p{7cm}}
+  \toprule
+  \textbf{Variabile} & \textbf{Default} & \textbf{Descrizione} \\
+  \midrule
+  \endfirsthead
+  \midrule
+  \textbf{Variabile} & \textbf{Default} & \textbf{Descrizione} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  \bottomrule
+  \caption{Variabili d'ambiente configurabili}
+  \endlastfoot
+  \texttt{LLM\_PROVIDER}           & \texttt{openai}             & Provider LLM: \texttt{openai} o \texttt{ollama} \\
+  \texttt{OPENAI\_API\_KEY}         & —                           & Chiave API OpenAI (obbligatoria se openai) \\
+  \texttt{OPENAI\_MODEL}            & \texttt{gpt-4o-mini}        & Modello chat OpenAI \\
+  \texttt{OPENAI\_EMBEDDING\_MODEL} & \texttt{text-embedding-3-small} & Modello embedding OpenAI \\
+  \texttt{OLLAMA\_BASE\_URL}        & \texttt{http://ollama:11434} & URL servizio Ollama \\
+  \texttt{OLLAMA\_MODEL}            & \texttt{llama3.2}           & Modello chat Ollama \\
+  \texttt{OLLAMA\_EMBEDDING\_MODEL} & \texttt{nomic-embed-text}   & Modello embedding Ollama \\
+  \texttt{QDRANT\_URL}              & \texttt{http://qdrant:6333} & URL servizio Qdrant \\
+  \texttt{QDRANT\_COLLECTION}       & \texttt{doc\_chunks}        & Nome collection Qdrant \\
+  \texttt{QDRANT\_VECTOR\_SIZE}     & \texttt{1536}               & Dimensione vettori embedding \\
+  \texttt{DATABASE\_URL}            & —                           & URL asyncpg PostgreSQL \\
+  \texttt{CHUNK\_SIZE}              & \texttt{500}                & Dimensione chunk in caratteri \\
+  \texttt{CHUNK\_OVERLAP}           & \texttt{50}                 & Overlap tra chunk consecutivi \\
+  \texttt{TOP\_K}                   & \texttt{4}                  & Numero chunk recuperati per query \\
+  \texttt{MAX\_UPLOAD\_SIZE\_MB}    & \texttt{50}                 & Limite dimensione file PDF \\
+  \texttt{DEBUG}                    & \texttt{false}              & Modalità debug (SQL logging) \\
+\end{longtable}
+
+\section{Conclusioni e Sviluppi Futuri}
+
+Il progetto raggiunge tutti gli obiettivi tecnici prefissati: un sistema RAG funzionante,
+containerizzato, con API documentata e supporto per provider LLM multipli.
+
+\subsection{Possibili Miglioramenti}
+
+\begin{itemize}
+  \item \textbf{Autenticazione}: aggiungere JWT/OAuth2 per proteggere gli endpoint.
+  \item \textbf{Re-ranking}: aggiungere un nodo LangGraph di re-ranking (es.\ Cohere
+        Rerank) per migliorare la qualità dei chunk recuperati.
+  \item \textbf{Interfaccia Web}: sviluppare un frontend React/Next.js con chat UI.
+  \item \textbf{Supporto multi-formato}: estendere l'ingestion a DOCX, PPTX, HTML.
+  \item \textbf{Chunking semantico}: usare semantic chunking basato su boundary
+        semantici invece di caratteri.
+  \item \textbf{Cache embedding}: implementare una cache Redis per evitare il ricalcolo
+        di embedding identici.
+  \item \textbf{Monitoring}: integrare Prometheus/Grafana per metriche di latenza e
+        throughput.
+  \item \textbf{Multi-tenant}: supporto per utenti multipli con isolamento dei documenti.
+\end{itemize}

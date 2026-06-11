@@ -1,0 +1,230 @@
+\chapter{API Reference}
+
+La documentazione interattiva è disponibile automaticamente all'avvio del server
+su \url{http://localhost:8000/docs} (Swagger UI) e \url{http://localhost:8000/redoc}.
+
+\section{Health Check}
+
+\begin{table}[H]
+  \centering
+  \begin{tabularx}{\textwidth}{lX}
+    \toprule
+    \textbf{Campo} & \textbf{Valore} \\
+    \midrule
+    Metodo & \texttt{GET} \\
+    Path   & \texttt{/health} \\
+    Descrizione & Verifica che il server sia attivo \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\textbf{Risposta 200:}
+\begin{lstlisting}[language=Python]
+{"status": "ok", "version": "1.0.0"}
+\end{lstlisting}
+
+\section{Endpoint Documenti}
+
+\subsection{Carica un documento}
+
+\begin{table}[H]
+  \centering
+  \begin{tabularx}{\textwidth}{lX}
+    \toprule
+    \textbf{Campo} & \textbf{Valore} \\
+    \midrule
+    Metodo      & \texttt{POST} \\
+    Path        & \texttt{/documents/upload} \\
+    Content-Type & \texttt{multipart/form-data} \\
+    Parametro   & \texttt{file} (UploadFile, required) \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\textbf{Esempio richiesta:}
+\begin{lstlisting}[language=bash]
+curl -X POST http://localhost:8000/documents/upload \
+  -F "file=@/path/to/document.pdf"
+\end{lstlisting}
+
+\textbf{Risposta 201:}
+\begin{lstlisting}[language=Python]
+{
+  "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "filename": "documento_abc123.pdf",
+  "upload_date": "2026-06-11T10:30:00+00:00",
+  "total_chunks": 47,
+  "total_pages": 8,
+  "file_size_bytes": 524288,
+  "status": "ready"
+}
+\end{lstlisting}
+
+\textbf{Errori:}
+\begin{itemize}
+  \item \texttt{400} — File non PDF, file vuoto, o tipo MIME non valido
+  \item \texttt{413} — Dimensione superiore al limite configurato (default 50 MB)
+  \item \texttt{500} — Errore durante l'indicizzazione
+\end{itemize}
+
+\subsection{Lista documenti}
+
+\begin{lstlisting}[language=bash]
+curl http://localhost:8000/documents/
+\end{lstlisting}
+
+\textbf{Risposta 200:} Array di oggetti documento, ordinati per data di upload decrescente.
+
+\subsection{Dettaglio documento}
+
+\begin{lstlisting}[language=bash]
+curl http://localhost:8000/documents/{doc_id}
+\end{lstlisting}
+
+\subsection{Elimina documento}
+
+\begin{lstlisting}[language=bash]
+curl -X DELETE http://localhost:8000/documents/{doc_id}
+\end{lstlisting}
+
+Elimina il documento da PostgreSQL, i vettori da Qdrant e il file dal disco.
+Risposta: \texttt{204 No Content}.
+
+\section{Endpoint Chat (RAG)}
+
+\subsection{Fai una domanda}
+
+\begin{table}[H]
+  \centering
+  \begin{tabularx}{\textwidth}{lX}
+    \toprule
+    \textbf{Campo} & \textbf{Valore} \\
+    \midrule
+    Metodo      & \texttt{POST} \\
+    Path        & \texttt{/chat/} \\
+    Content-Type & \texttt{application/json} \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\textbf{Body JSON:}
+\begin{lstlisting}[language=Python]
+{
+  "question": "Qual e la metodologia descritta nel capitolo 3?",
+  "doc_id": "3fa85f64-...",   // opzionale: filtra su un documento
+  "session_id": "abc-123",    // opzionale: per mantenere lo storico
+  "top_k": 4,                 // default: 4, range: 1-20
+  "stream": false             // true per SSE streaming
+}
+\end{lstlisting}
+
+\textbf{Risposta 200 (non-streaming):}
+\begin{lstlisting}[language=Python]
+{
+  "session_id": "abc-123",
+  "answer": "Il capitolo 3 descrive una metodologia basata su...",
+  "sources": [
+    {
+      "text": "...testo del chunk rilevante...",
+      "page_num": 12,
+      "doc_id": "3fa85f64-...",
+      "chunk_index": 23,
+      "score": 0.8932
+    }
+  ]
+}
+\end{lstlisting}
+
+\textbf{Risposta streaming (\texttt{"stream": true}):}\\
+Server-Sent Events (SSE). Ogni evento contiene un token della risposta.
+L'ultimo evento è \texttt{data: [DONE]}.
+
+\begin{lstlisting}[language=bash]
+curl -X POST http://localhost:8000/chat/ \
+  -H "Content-Type: application/json" \
+  -d '{"question": "Di cosa tratta?", "stream": true}'
+# Output:
+# data: Il
+# data:  documento
+# data:  tratta
+# data:  di...
+# data: [DONE]
+\end{lstlisting}
+
+\subsection{Storico conversazione}
+
+\begin{lstlisting}[language=bash]
+curl http://localhost:8000/chat/history/{session_id}
+\end{lstlisting}
+
+\textbf{Risposta 200:} Array di messaggi con \texttt{role} (\texttt{user}/\texttt{assistant})
+e \texttt{content}.
+
+\section{Endpoint Ricerca Semantica}
+
+\begin{table}[H]
+  \centering
+  \begin{tabularx}{\textwidth}{llX}
+    \toprule
+    \textbf{Parametro} & \textbf{Tipo} & \textbf{Descrizione} \\
+    \midrule
+    \texttt{q}       & string (required) & Testo da cercare semanticamente \\
+    \texttt{top\_k}  & integer (1-20)    & Numero di risultati, default 5 \\
+    \texttt{doc\_id} & string (optional) & Filtra su un singolo documento \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\textbf{Esempio:}
+\begin{lstlisting}[language=bash]
+curl "http://localhost:8000/search/?q=reti+neurali&top_k=3&doc_id=3fa85f64-..."
+\end{lstlisting}
+
+\textbf{Risposta 200:}
+\begin{lstlisting}[language=Python]
+{
+  "query": "reti neurali",
+  "doc_id": "3fa85f64-...",
+  "total": 3,
+  "results": [
+    {
+      "text": "Le reti neurali profonde sono composte da...",
+      "page_num": 7,
+      "doc_id": "3fa85f64-...",
+      "chunk_index": 15,
+      "score": 0.9214
+    }
+  ]
+}
+\end{lstlisting}
+
+\section{Risultati Sperimentali}
+
+Di seguito tre domande di test eseguite sul documento \texttt{sample.pdf} incluso
+nella cartella \texttt{tests/fixtures/}. Le risposte dimostrano il corretto funzionamento
+della pipeline RAG.
+
+\subsection{Test 1: Domanda Generale}
+
+\textbf{Domanda:} \emph{"Di cosa tratta questo documento?"}
+
+\textbf{Risposta attesa:}
+Il documento è un documento di esempio per testare il sistema RAG. Descrive un
+AI Document Assistant capace di estrarre testo da PDF, suddividerlo in chunk e
+indicizzare gli embedding in Qdrant.
+
+\subsection{Test 2: Architettura}
+
+\textbf{Domanda:} \emph{"Quali sono i componenti principali dell'architettura?"}
+
+\textbf{Risposta attesa:}
+L'architettura include FastAPI come framework web, LangChain e LangGraph per
+l'orchestrazione RAG, Qdrant come database vettoriale e PostgreSQL per i metadati.
+
+\subsection{Test 3: Deployment}
+
+\textbf{Domanda:} \emph{"Come si avvia il progetto?"}
+
+\textbf{Risposta attesa:}
+Il progetto si avvia con il comando \texttt{docker compose up}. La Swagger UI
+è disponibile su \texttt{http://localhost:8000/docs}.

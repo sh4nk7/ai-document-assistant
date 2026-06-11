@@ -1,0 +1,61 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+.venv/
+venv/
+env/
+ENV/
+
+# Environment variables
+.env
+docker/.env
+*.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Uploads / temp files
+uploads/
+tmp/
+*.tmp
+
+# Logs
+*.log
+logs/
+
+# Docker volumes
+postgres_data/
+qdrant_data/
+
+# LaTeX build artifacts
+docs/*.aux
+docs/*.log
+docs/*.out
+docs/*.toc
+docs/*.lot
+docs/*.lof
+docs/*.synctex.gz
+docs/**/*.aux
+docs/**/*.log
+docs/**/*.out
+
+# Test artifacts
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# mypy
+.mypy_cache/

@@ -1,0 +1,166 @@
+\chapter{Architettura}
+
+\section{Visione d'Insieme}
+
+Il sistema è articolato in tre macro-componenti che comunicano tra loro attraverso
+interfacce ben definite:
+
+\begin{enumerate}
+  \item \textbf{Application Layer}: API REST sviluppata con FastAPI, punto di ingresso
+        per tutti i client HTTP.
+  \item \textbf{Data Layer}: due database specializzati — PostgreSQL per metadati
+        strutturati e conversazioni, Qdrant per gli embedding vettoriali.
+  \item \textbf{Intelligence Layer}: pipeline RAG orchestrata con LangGraph che
+        coordina embedding, retrieval e generazione della risposta.
+\end{enumerate}
+
+\section{Diagramma a Blocchi}
+
+\begin{figure}[H]
+  \centering
+  \begin{tabular}{|c|}
+    \hline
+    \textbf{Client (browser / curl)} \\
+    \hline
+  \end{tabular}
+  \quad$\downarrow$ HTTP \\[0.3em]
+  \begin{tabular}{|c|}
+    \hline
+    \textbf{FastAPI Application} \\
+    \small /documents \quad /chat \quad /search \\
+    \hline
+  \end{tabular}
+
+  \vspace{0.5em}
+  $\swarrow$ \hspace{4cm} $\searrow$
+  \vspace{0.3em}
+
+  \begin{tabular}{c}
+    \begin{tabular}{|c|}
+      \hline
+      \textbf{LangGraph RAG Pipeline} \\
+      \small embed\_query $\to$ search\_qdrant \\
+      \small build\_prompt $\to$ call\_llm \\
+      \hline
+    \end{tabular}
+  \end{tabular}
+  \hspace{1cm}
+  \begin{tabular}{c}
+    \begin{tabular}{|c|}
+      \hline
+      \textbf{PostgreSQL} \\
+      \small documents, conversations \\
+      \hline
+    \end{tabular}
+  \end{tabular}
+
+  \vspace{0.5em}
+  $\downarrow$ \hspace{0cm}
+  $\downarrow$
+
+  \begin{tabular}{|c|} \hline \textbf{Qdrant} \\ \small doc\_chunks \\ \hline \end{tabular}
+  \hspace{1cm}
+  \begin{tabular}{|c|} \hline \textbf{OpenAI / Ollama} \\ \small LLM + Embeddings \\ \hline \end{tabular}
+
+  \caption{Architettura a blocchi dell'AI Document Assistant}
+\end{figure}
+
+\section{Flusso di Ingestion (Upload PDF)}
+
+\begin{enumerate}
+  \item Il client invia il file tramite \texttt{POST /documents/upload}.
+  \item FastAPI valida il file (mime type, dimensione, header PDF).
+  \item \texttt{ingestion.py} estrae il testo pagina per pagina con \textbf{pypdf}.
+  \item Il testo viene suddiviso in chunk da 500 caratteri con overlap di 50
+        mediante \texttt{RecursiveCharacterTextSplitter} di LangChain.
+  \item Per ogni chunk viene generato un vettore di embedding (1536 dimensioni
+        con \texttt{text-embedding-3-small}).
+  \item I vettori sono inseriti in Qdrant nella collection \texttt{doc\_chunks}
+        con payload: \texttt{doc\_id}, \texttt{page\_num}, \texttt{chunk\_index}, \texttt{text}.
+  \item I metadati del documento (id, filename, total\_chunks, total\_pages, status)
+        vengono salvati in PostgreSQL.
+\end{enumerate}
+
+\section{Flusso RAG (Chat)}
+
+Il flusso RAG è implementato come \textbf{grafo deterministico} con LangGraph.
+Il grafo ha quattro nodi connessi sequenzialmente:
+
+\begin{table}[H]
+  \centering
+  \begin{tabularx}{\textwidth}{llX}
+    \toprule
+    \textbf{Nodo} & \textbf{Funzione} & \textbf{Operazione} \\
+    \midrule
+    \texttt{embed\_query}   & Embedding        & Converte la domanda in vettore \\
+    \texttt{search\_qdrant} & Retrieval        & Cerca i top-k chunk simili \\
+    \texttt{build\_prompt}  & Prompt Building  & Compone il prompt con contesto \\
+    \texttt{call\_llm}      & Generation       & Genera la risposta finale \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Nodi del grafo LangGraph}
+\end{table}
+
+Lo stato condiviso tra i nodi è un dizionario tipizzato (\texttt{TypedDict}) con
+i campi: \texttt{question}, \texttt{doc\_id}, \texttt{top\_k}, \texttt{query\_vector},
+\texttt{retrieved\_chunks}, \texttt{prompt\_messages}, \texttt{answer}.
+
+\section{Motivazione per LangGraph}
+
+LangGraph è stato scelto per le seguenti ragioni:
+
+\begin{itemize}
+  \item \textbf{Controllo esplicito del flusso}: ogni transizione tra nodi è dichiarata,
+        rendendo il pipeline auditabile e modificabile senza riscrivere la logica.
+  \item \textbf{Estendibilità}: aggiungere un nodo di reranking, di verifica delle fonti
+        o di tool-calling richiede solo l'aggiunta di un nodo e di un edge nel grafo.
+  \item \textbf{Compatibilità}: si integra nativamente con LangChain, riutilizzando
+        \texttt{ChatOpenAI}, \texttt{OllamaEmbeddings}, ecc.
+  \item \textbf{Streaming}: il grafo supporta lo streaming token-by-token,
+        implementato nell'endpoint \texttt{/chat} con Server-Sent Events.
+\end{itemize}
+
+\section{Modello Dati}
+
+\subsection{PostgreSQL}
+
+\begin{lstlisting}[language=SQL, caption=Schema tabelle PostgreSQL]
+-- Metadati documenti
+CREATE TABLE documents (
+    id             VARCHAR(36) PRIMARY KEY,
+    filename       VARCHAR(512) NOT NULL,
+    original_filename VARCHAR(512) NOT NULL,
+    upload_date    TIMESTAMPTZ DEFAULT NOW(),
+    total_chunks   INTEGER DEFAULT 0,
+    total_pages    INTEGER DEFAULT 0,
+    file_size_bytes INTEGER DEFAULT 0,
+    status         VARCHAR(32) DEFAULT 'processing'
+);
+
+-- Storico conversazioni
+CREATE TABLE conversations (
+    id         VARCHAR(36) PRIMARY KEY,
+    session_id VARCHAR(36) NOT NULL,
+    doc_id     VARCHAR(36) REFERENCES documents(id) ON DELETE SET NULL,
+    role       VARCHAR(16) NOT NULL,  -- 'user' | 'assistant'
+    content    TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+\end{lstlisting}
+
+\subsection{Qdrant Collection}
+
+Ogni punto nella collection \texttt{doc\_chunks} ha la seguente struttura:
+
+\begin{lstlisting}[language=Python, caption=Struttura punto Qdrant]
+PointStruct(
+    id=f"{doc_id}_{chunk_index}",   # ID stringa
+    vector=[0.023, -0.415, ...],    # 1536 float32
+    payload={
+        "doc_id": "uuid-string",
+        "chunk_index": 42,
+        "page_num": 3,
+        "text": "...testo del chunk..."
+    }
+)
+\end{lstlisting}

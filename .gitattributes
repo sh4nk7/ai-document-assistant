@@ -1,0 +1,7 @@
+# Normalize line endings
+* text=auto
+
+# Binary files — no conversion
+*.pdf binary
+*.png binary
+*.jpg binary

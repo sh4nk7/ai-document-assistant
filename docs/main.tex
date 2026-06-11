@@ -1,0 +1,120 @@
+\documentclass[12pt,a4paper]{report}
+
+% ── Encoding & Language ────────────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[italian]{babel}
+
+% ── Layout ────────────────────────────────────────────────────────────────
+\usepackage[top=2.5cm,bottom=2.5cm,left=3cm,right=2.5cm]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+
+% ── Typography ────────────────────────────────────────────────────────────
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{parskip}
+
+% ── Graphics & Colors ─────────────────────────────────────────────────────
+\usepackage{graphicx}
+\usepackage[dvipsnames,svgnames,table]{xcolor}
+\definecolor{primary}{HTML}{2C3E50}
+\definecolor{accent}{HTML}{2980B9}
+\definecolor{lightgray}{HTML}{F4F6F7}
+\definecolor{codegray}{HTML}{EEEEEE}
+
+% ── Code listings ─────────────────────────────────────────────────────────
+\usepackage{listings}
+\lstset{
+  backgroundcolor=\color{codegray},
+  basicstyle=\ttfamily\footnotesize,
+  breaklines=true,
+  frame=single,
+  rulecolor=\color{gray!40},
+  keywordstyle=\color{accent}\bfseries,
+  commentstyle=\color{gray},
+  stringstyle=\color{OliveGreen},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  showstringspaces=false,
+  captionpos=b,
+}
+\lstdefinelanguage{YAML}{
+  keywords={true,false,null,yes,no},
+  sensitive=false,
+  comment=[l]{\#},
+  morestring=[b]',
+  morestring=[b]",
+}
+
+% ── Tables ────────────────────────────────────────────────────────────────
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{array}
+
+% ── Links ─────────────────────────────────────────────────────────────────
+\usepackage[hidelinks,colorlinks=true,linkcolor=primary,urlcolor=accent,citecolor=accent]{hyperref}
+
+% ── Headers ───────────────────────────────────────────────────────────────
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textcolor{gray}{AI Document Assistant}}
+\fancyhead[R]{\small\textcolor{gray}{\leftmark}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ── Chapter style ─────────────────────────────────────────────────────────
+\usepackage{titlesec}
+\titleformat{\chapter}[hang]
+  {\normalfont\LARGE\bfseries\color{primary}}
+  {\thechapter.}{0.8em}{}
+\titlespacing{\chapter}{0pt}{*2}{*1.5}
+
+% ── Misc ──────────────────────────────────────────────────────────────────
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{float}
+\usepackage{caption}
+
+% ══════════════════════════════════════════════════════════════════════════
+\begin{document}
+
+% ── Title page ────────────────────────────────────────────────────────────
+\begin{titlepage}
+  \centering
+  \vspace*{2cm}
+  {\Huge\bfseries\color{primary} AI Document Assistant\par}
+  \vspace{0.5cm}
+  {\Large\color{gray} Sistema RAG per l'analisi intelligente di documenti PDF\par}
+  \vspace{2cm}
+  \rule{\linewidth}{0.4pt}\\[0.4cm]
+  {\large Report di Progetto\par}
+  \rule{\linewidth}{0.4pt}\\[2cm]
+
+  \begin{tabular}{ll}
+    \textbf{Stack:}       & Python 3.11, FastAPI, LangChain, LangGraph \\
+    \textbf{Vector DB:}   & Qdrant                                      \\
+    \textbf{Relational:}  & PostgreSQL 16                               \\
+    \textbf{LLM:}         & OpenAI GPT-4o-mini / Ollama                \\
+    \textbf{Deploy:}      & Docker Compose                              \\
+    \textbf{Versione:}    & 1.0.0                                       \\
+    \textbf{Data:}        & Giugno 2026                                 \\
+  \end{tabular}
+
+  \vfill
+  {\small\color{gray} Documentazione tecnica — tutti i diritti riservati}
+\end{titlepage}
+
+% ── TOC ───────────────────────────────────────────────────────────────────
+\tableofcontents
+\clearpage
+
+% ── Chapters ──────────────────────────────────────────────────────────────
+\include{chapters/01_introduzione}
+\include{chapters/02_architettura}
+\include{chapters/03_api}
+\include{chapters/04_installazione}
+
+\end{document}

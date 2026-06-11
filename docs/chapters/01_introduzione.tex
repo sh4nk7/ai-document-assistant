@@ -1,0 +1,62 @@
+\chapter{Introduzione}
+
+\section{Scopo del Progetto}
+
+L'\textbf{AI Document Assistant} è un'applicazione web full-stack progettata per consentire
+agli utenti di interagire in linguaggio naturale con i propri documenti PDF attraverso un
+sistema di \emph{Retrieval-Augmented Generation} (RAG).
+
+Il sistema risolve un problema pratico comune: la difficoltà di estrarre rapidamente
+informazioni specifiche da grandi volumi di documenti. Invece di scorrere manualmente
+decine di pagine, l'utente può semplicemente porre una domanda e ricevere una risposta
+precisa, contestualizzata e citata con i riferimenti di pagina.
+
+\section{Caso d'Uso}
+
+\textbf{Scenario tipico:} un professionista carica una raccolta di report, contratti o
+articoli scientifici. Vuole sapere, ad esempio:
+
+\begin{itemize}
+  \item \emph{"Qual è la clausola relativa alla rescissione anticipata?"}
+  \item \emph{"Quali metodologie statistiche sono state utilizzate nell'articolo?"}
+  \item \emph{"Riassumi i punti chiave del capitolo sull'architettura."}
+\end{itemize}
+
+Il sistema recupera automaticamente i passaggi più rilevanti e genera una risposta
+coerente, citando le pagine di origine.
+
+\section{Obiettivi Tecnici}
+
+\begin{enumerate}
+  \item \textbf{Caricamento e indicizzazione}: elaborazione automatica del PDF in
+        pipeline di ingestion (parsing $\rightarrow$ chunking $\rightarrow$ embedding
+        $\rightarrow$ storage vettoriale).
+  \item \textbf{Chatbot RAG}: risposta in linguaggio naturale basata esclusivamente
+        sul contenuto del documento.
+  \item \textbf{Ricerca semantica}: ricerca per significato, non per keyword.
+  \item \textbf{Deployment containerizzato}: l'intero sistema avviabile con un
+        singolo comando \texttt{docker compose up}.
+  \item \textbf{Configurabilità}: supporto per provider LLM multipli (OpenAI e Ollama
+        per uso locale/privato).
+\end{enumerate}
+
+\section{Tecnologie Principali}
+
+\begin{table}[H]
+  \centering
+  \begin{tabularx}{\textwidth}{lX}
+    \toprule
+    \textbf{Componente} & \textbf{Tecnologia} \\
+    \midrule
+    Backend API       & FastAPI 0.115 + Uvicorn \\
+    Orchestrazione LLM & LangChain 0.3 + LangGraph 0.2 \\
+    Modello linguistico & OpenAI GPT-4o-mini / Ollama Llama 3.2 \\
+    Embedding         & text-embedding-3-small (1536 dim) / nomic-embed-text \\
+    Vector Database   & Qdrant (ricerca coseno) \\
+    Database relazionale & PostgreSQL 16 + SQLAlchemy 2.0 (async) \\
+    Parsing PDF       & pypdf 5 \\
+    Containerizzazione & Docker Compose \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Stack tecnologico del progetto}
+\end{table}

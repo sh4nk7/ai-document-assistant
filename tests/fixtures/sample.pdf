@@ -1,0 +1,104 @@
+%PDF-1.4
+6 0 obj
+<< /Length 430 >>
+stream
+BT
+/F1 12 Tf
+50 750 Td
+14 TL
+(AI Document Assistant - Sample PDF) Tj T*
+() Tj T*
+(Pagina 1) Tj T*
+() Tj T*
+(Questa e una pagina di esempio per testare il sistema RAG.) Tj T*
+(Il sistema estrae testo dai PDF, lo suddivide in chunk) Tj T*
+(e indicizza gli embedding in un database vettoriale Qdrant.) Tj T*
+() Tj T*
+(L intelligenza artificiale simula processi cognitivi umani) Tj T*
+(mediante sistemi informatici avanzati.) Tj T*
+ET
+endstream
+endobj
+7 0 obj
+<< /Length 545 >>
+stream
+BT
+/F1 12 Tf
+50 750 Td
+14 TL
+(Architettura del Sistema) Tj T*
+() Tj T*
+(Pagina 2) Tj T*
+() Tj T*
+(Componenti principali:) Tj T*
+(- FastAPI: framework web ad alte prestazioni) Tj T*
+(- LangChain + LangGraph: orchestrazione RAG) Tj T*
+(- Qdrant: database vettoriale coseno) Tj T*
+(- PostgreSQL: metadati e storico conversazioni) Tj T*
+() Tj T*
+(Flusso RAG:) Tj T*
+(1. Ricezione domanda utente) Tj T*
+(2. Embedding della query) Tj T*
+(3. Ricerca semantica top-k in Qdrant) Tj T*
+(4. Costruzione prompt con contesto) Tj T*
+(5. Risposta LLM) Tj T*
+ET
+endstream
+endobj
+8 0 obj
+<< /Length 414 >>
+stream
+BT
+/F1 12 Tf
+50 750 Td
+14 TL
+(Tecnologie e Deployment) Tj T*
+() Tj T*
+(Pagina 3) Tj T*
+() Tj T*
+(Il progetto usa Python 3.11 e Docker Compose.) Tj T*
+(OpenAI GPT-4o-mini e il modello LLM predefinito.) Tj T*
+(text-embedding-3-small genera vettori 1536-dimensionali.) Tj T*
+() Tj T*
+(Per avviare il progetto:) Tj T*
+(  docker compose up) Tj T*
+() Tj T*
+(Swagger UI disponibile su http://localhost:8000/docs) Tj T*
+ET
+endstream
+endobj
+9 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 6 0 R /Resources << /Font << /F1 9 0 R >> >> >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 7 0 R /Resources << /Font << /F1 9 0 R >> >> >>
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 8 0 R /Resources << /Font << /F1 9 0 R >> >> >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R 4 0 R 5 0 R] /Count 3 >>
+endobj
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000002068 00000 n 
+0000001999 00000 n 
+0000001621 00000 n 
+0000001747 00000 n 
+0000001873 00000 n 
+0000000009 00000 n 
+0000000490 00000 n 
+0000001086 00000 n 
+0000001551 00000 n 
+trailer
+<< /Size 10 /Root 1 0 R >>
+startxref
+2117
+%%EOF
